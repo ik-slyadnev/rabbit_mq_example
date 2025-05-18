@@ -1,0 +1,54 @@
+# Удаляем строку version: '3.8'
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq-trainer
+    ports:
+      - "5672:5672"   # RabbitMQ порт
+      - "15672:15672" # Management UI порт
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=admin
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - rabbitmq-net
+
+  producer:
+    build: ./producer
+    container_name: rabbitmq-producer
+    depends_on:
+      - rabbitmq
+    volumes:
+      - ./producer:/app
+    networks:
+      - rabbitmq-net
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_USER=admin
+      - RABBITMQ_PASS=admin
+    ports:
+      - "5002:5000"  # Изменено с 5000:5000 на 5002:5000
+  consumer:
+    build: ./consumer
+    container_name: rabbitmq-consumer
+    depends_on:
+      - rabbitmq
+    volumes:
+      - ./consumer:/app
+    networks:
+      - rabbitmq-net
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_USER=admin
+      - RABBITMQ_PASS=admin
+    ports:
+      - "5001:5001"
+
+networks:
+  rabbitmq-net:
+    driver: bridge
+
+volumes:
+  rabbitmq_data:
