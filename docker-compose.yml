@@ -1,5 +1,3 @@
-# Удаляем строку version: '3.8'
-
 services:
   rabbitmq:
     image: rabbitmq:3-management
@@ -14,12 +12,18 @@ services:
       - rabbitmq_data:/var/lib/rabbitmq
     networks:
       - rabbitmq-net
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 10s
+      retries: 20
 
   producer:
     build: ./producer
     container_name: rabbitmq-producer
     depends_on:
-      - rabbitmq
+      rabbitmq:
+        condition: service_healthy
     volumes:
       - ./producer:/app
     networks:
@@ -34,7 +38,8 @@ services:
     build: ./consumer
     container_name: rabbitmq-consumer
     depends_on:
-      - rabbitmq
+      rabbitmq:
+        condition: service_healthy
     volumes:
       - ./consumer:/app
     networks:

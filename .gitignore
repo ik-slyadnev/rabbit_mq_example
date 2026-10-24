@@ -1,0 +1,5 @@
+
+# Состояние консьюмера, создаётся при работе
+consumer/active_queues.json
+consumer/received_messages.json
+__pycache__/

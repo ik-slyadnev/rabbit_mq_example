@@ -1,6 +1,7 @@
 import os
 import json
 import pika
+import time
 from flask import Flask, request, jsonify
 
 app = Flask(__name__)
@@ -16,7 +17,15 @@ def get_rabbitmq_connection():
         host=RABBITMQ_HOST,
         credentials=credentials
     )
-    return pika.BlockingConnection(parameters)
+    # RabbitMQ может подниматься дольше сервиса, поэтому пробуем подключиться несколько раз
+    for attempt in range(1, 11):
+        try:
+            return pika.BlockingConnection(parameters)
+        except pika.exceptions.AMQPConnectionError:
+            if attempt == 10:
+                raise
+            print(f"RabbitMQ недоступен, попытка {attempt}/10, ждём 3 секунды...")
+            time.sleep(3)
 
 @app.route('/send', methods=['POST'])
 def send_message():
@@ -84,4 +93,4 @@ def create_exchange():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=False)

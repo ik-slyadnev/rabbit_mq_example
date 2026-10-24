@@ -79,7 +79,15 @@ def get_rabbitmq_connection():
         heartbeat=600,
         blocked_connection_timeout=300
     )
-    return pika.BlockingConnection(parameters)
+    # RabbitMQ может подниматься дольше сервиса, поэтому пробуем подключиться несколько раз
+    for attempt in range(1, 11):
+        try:
+            return pika.BlockingConnection(parameters)
+        except pika.exceptions.AMQPConnectionError:
+            if attempt == 10:
+                raise
+            print(f"RabbitMQ недоступен, попытка {attempt}/10, ждём 3 секунды...")
+            time.sleep(3)
 
 def consume_messages(queue_name):
     try:
@@ -313,4 +321,6 @@ if __name__ == '__main__':
     # Восстанавливаем состояние перед запуском сервера
     restore_state()
     # Запускаем сервер
-    app.run(host='0.0.0.0', port=5001, debug=True)
+    # debug=False: в режиме отладки Flask запускает приложение дважды,
+    # и на каждой очереди оказывалось по два потребителя (половина сообщений терялась для API)
+    app.run(host='0.0.0.0', port=5001, debug=False)
