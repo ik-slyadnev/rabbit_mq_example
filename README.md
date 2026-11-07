@@ -1,8 +1,14 @@
-# Руководство по запуску и использованию RabbitMQ проекта
+# RabbitMQ для QA: тренажёр с REST API, Python и Docker Compose
+
+Учебный стенд RabbitMQ для ручного тестирования очередей, обменников и маршрутизации сообщений: два Flask REST API, Management UI, сохранение истории и восстановление потребителей после перезапуска
+
+Local RabbitMQ training lab for manual QA and message queue testing. Python/Flask REST APIs cover publishing, consuming, exchange bindings, queue purging, message history and consumer recovery with Docker Compose.
+
+[Быстрый запуск](#запуск-проекта) · [Producer API](#работа-с-producer-api) · [Consumer API](#работа-с-consumer-api) · [Практика](#базовый-сценарий-использования) · [Проверки](#проверка-исправлений)
 
 ## Обзор проекта
 
-Этот проект представляет собой систему обмена сообщениями на базе RabbitMQ с тремя основными компонентами:
+В стенде три компонента:
 
 - **Producer (Отправитель)** - сервис для отправки сообщений в очереди RabbitMQ
 - **Consumer (Получатель)** - сервис для получения и обработки сообщений из очередей
@@ -257,3 +263,8 @@ python3 tests/smoke.py
 История рассчитана на небольшой учебный стенд с одним процессом consumer: при каждом сообщении JSON-файл переписывается целиком.
 
 Сообщения, которые не декодируются как UTF-8, сохраняются в Base64 с полем `encoding: "base64"`.
+
+
+## Другие проекты
+
+[Apache Kafka для QA](https://github.com/ik-slyadnev/kafka_example): топики, партиции, группы потребителей, Avro, Schema Registry и сценарии ребалансировки
