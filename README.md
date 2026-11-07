@@ -12,30 +12,32 @@
 
 ## Требования
 
+- Git
 - Docker
-- Docker Compose
+- Docker Compose с поддержкой `docker compose up --wait`
+- Python 3 на компьютере для интеграционной проверки
 
 ## Запуск проекта
 
 ### Шаг 1: Клонирование репозитория
 ```
-git clone <url-репозитория>
-cd <название-репозитория>
+git clone https://github.com/ik-slyadnev/rabbit_mq_example.git
+cd rabbit_mq_example
 ```
 
 ### Шаг 2: Запуск контейнеров
 ```
-docker-compose up -d
+docker compose up -d --build --wait
 ```
 
 Эта команда запустит три контейнера:
-- *rabbitmq* - сервер RabbitMQ с Management UI
+- *rabbitmq-trainer* - сервер RabbitMQ с Management UI
 - *rabbitmq-producer* - сервис для отправки сообщений
 - *rabbitmq-consumer* - сервис для получения и обработки сообщений
 
 ### Шаг 3: Проверка статуса контейнеров
 ```
-docker-compose ps
+docker compose ps
 ```
 Все контейнеры должны быть в статусе "Up".
 
@@ -84,6 +86,17 @@ curl -X POST http://localhost:5001/bind_queue -H "Content-Type: application/json
   "queue": "my_queue",
   "exchange": "my_exchange",
   "routing_key": "my_routing_key"
+}'
+```
+
+Перед привязкой создайте обменник через `/create_exchange`, как показано выше
+Для отправки через этот обменник укажите тот же routing key:
+
+```bash
+curl -X POST http://localhost:5002/send -H "Content-Type: application/json" -d '{
+  "exchange": "my_exchange",
+  "routing_key": "my_routing_key",
+  "message": "Сообщение через обменник"
 }'
 ```
 
@@ -183,21 +196,25 @@ curl http://localhost:5001/messages/test_queue
 
 ## Остановка проекта
 
-Для остановки всех контейнеров:
+Для остановки всех контейнеров этого проекта:
 ```
-docker-compose down
+docker compose down
 ```
 
-Для остановки с удалением всех данных (включая тома):
+Для остановки с удалением тома RabbitMQ, очередей, обменников и сообщений брокера:
 ```
-docker-compose down -v
+docker compose down -v
 ```
+
+История `consumer/received_messages.json` и список активных очередей `consumer/active_queues.json` остаются на компьютере: каталог `consumer` подключён в контейнер как папка с хоста
+Для полного сброса удалите эти два файла вручную после остановки контейнеров
+Если оставить список активных очередей, consumer создаст их снова при следующем запуске
 
 ## Дополнительная информация
 
 ### Структура контейнеров
 
-**rabbitmq** - RabbitMQ сервер с Management UI
+**rabbitmq-trainer** - RabbitMQ сервер с Management UI (сервис Compose называется `rabbitmq`)
 - Порты: 5672 (AMQP), 15672 (Management UI)
 - Учетные данные: admin/admin
 
@@ -216,3 +233,27 @@ docker-compose down -v
 
 ## Заключение
 Эта система предоставляет простой интерфейс для изучения работы с RabbitMQ через REST API. Вы можете использовать ее для изучения принципов работы систем обмена сообщениями.
+
+
+## Проверка исправлений
+
+После запуска стенда выполните с компьютера из корня репозитория:
+
+```bash
+docker compose run --rm --no-deps -v "$PWD:/repo" -w /repo consumer python -m unittest discover -s tests -v
+python3 tests/smoke.py
+```
+
+Интеграционная проверка создаёт временную очередь и обменник, перезапускает контейнеры `rabbitmq-consumer` и `rabbitmq-trainer`, затем удаляет тестовую очередь и обменник.
+
+Порты стенда доступны только на локальном компьютере.
+`/send` возвращает успех после подтверждения брокера, а для сообщения без подходящей очереди возвращает HTTP 400.
+`/stop_consumer` возвращает HTTP 200 после остановки потока или HTTP 202, если поток ещё завершает работу.
+`/purge_queue` удаляет ожидающие сообщения из брокера, `/clear_messages` очищает сохранённую историю.
+Повреждённый файл состояния останавливает запуск, чтобы его содержимое не было затёрто пустой историей.
+
+Подтверждение получения отправляется после сохранения сообщения на диск.
+При разрыве соединения между сохранением и подтверждением возможна повторная доставка.
+История рассчитана на небольшой учебный стенд с одним процессом consumer: при каждом сообщении JSON-файл переписывается целиком.
+
+Сообщения, которые не декодируются как UTF-8, сохраняются в Base64 с полем `encoding: "base64"`.

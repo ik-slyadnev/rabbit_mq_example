@@ -3,8 +3,8 @@ services:
     image: rabbitmq:3-management
     container_name: rabbitmq-trainer
     ports:
-      - "5672:5672"   # RabbitMQ порт
-      - "15672:15672" # Management UI порт
+      - "127.0.0.1:5672:5672"   # RabbitMQ порт
+      - "127.0.0.1:15672:15672" # Management UI порт
     environment:
       - RABBITMQ_DEFAULT_USER=admin
       - RABBITMQ_DEFAULT_PASS=admin
@@ -33,7 +33,7 @@ services:
       - RABBITMQ_USER=admin
       - RABBITMQ_PASS=admin
     ports:
-      - "5002:5000"  # Изменено с 5000:5000 на 5002:5000
+      - "127.0.0.1:5002:5000"  # Изменено с 5000:5000 на 5002:5000
   consumer:
     build: ./consumer
     container_name: rabbitmq-consumer
@@ -49,7 +49,7 @@ services:
       - RABBITMQ_USER=admin
       - RABBITMQ_PASS=admin
     ports:
-      - "5001:5001"
+      - "127.0.0.1:5001:5001"
 
 networks:
   rabbitmq-net:
